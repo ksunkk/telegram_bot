@@ -1,0 +1,1 @@
+Telegram.bots_config = Rails.application.secrets[:telegram]

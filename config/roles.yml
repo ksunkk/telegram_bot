@@ -1,0 +1,16 @@
+---
+- id: 1
+  code: :admin
+  name: 'Администратор'
+
+- id: 2
+  code: :validator
+  name: 'Проверяющий'
+
+- id: 3
+  code: :fieldworker
+  name: Полевой сотрудник
+
+- id: 4
+  code: :other
+  name: 'Незарегистрированный пользователь'

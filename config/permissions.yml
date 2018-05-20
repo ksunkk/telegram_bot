@@ -1,0 +1,67 @@
+---
+- id: 1
+  name: 'Добавлять пользователей'
+  action_name: :add_user
+  available_for:
+    - :admin
+
+- id: 2
+  name: 'Отвечать пользователям'
+  action_name: :answer
+  available_for:
+    - :admin
+
+- id: 3
+  name: 'Вносить первичную информацию в базу данных'
+  action_name: :add_info
+  available_for:
+    - :admin
+    - :fieldworker
+
+- id: 4
+  name: 'Проверять информацию в базе данных'
+  action_name: :check_db_info
+  available_for:
+    - :admin
+    - :validator
+
+- id: 5
+  name: 'Получать оповещения'
+  action_name: :get_notification
+  available_for:
+    - :admin
+    - :fieldworker
+    - :validator
+
+- id: 6
+  name: 'Получать резервную копию базы данных'
+  action_name: :get_db_backup
+  available_for:
+    - :admin
+
+- id: 7
+  name: 'Получать уведомления для проверки данных'
+  action_name: :get_new_data_alerts
+  available_for:
+    - :admin
+    - :validator
+
+- id: 8
+  name: 'Отправлять оповещения'
+  action_name: :send_notifications
+  available_for:
+    - :admin
+
+- id: 9
+  name: 'Видеть статистику(общую)'
+  action_name: :get_stats
+  available_for:
+    - :admin
+
+- id: 10
+  name: 'Видеть статистику(свою)'
+  action_name: :get_self_stats
+  available_for:
+    - :admin
+    - :validator
+    - :fieldworker
