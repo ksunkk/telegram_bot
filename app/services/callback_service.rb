@@ -2,7 +2,10 @@ class CallbackService
   class << self
     METHOD_MAPPER = {
                       ru: :select_language,
-                      en: :select_language
+                      en: :select_language,
+                      add_user: :new_user,
+                      add_info: :create_org_record
+
                     }.each(&:freeze).freeze
 
     def process(data)
@@ -13,6 +16,9 @@ class CallbackService
     end
 
     private
+
+    def new_user
+    end
 
     def select_language
       I18n.locale = @data

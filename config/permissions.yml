@@ -2,6 +2,7 @@
 - id: 1
   name: 'Добавлять пользователей'
   action_name: :add_user
+  show: true
   available_for:
     - :admin
 
@@ -21,6 +22,7 @@
 - id: 4
   name: 'Проверять информацию в базе данных'
   action_name: :check_db_info
+  show: true
   available_for:
     - :admin
     - :validator
@@ -36,6 +38,7 @@
 - id: 6
   name: 'Получать резервную копию базы данных'
   action_name: :get_db_backup
+  show: true
   available_for:
     - :admin
 
@@ -55,12 +58,14 @@
 - id: 9
   name: 'Видеть статистику(общую)'
   action_name: :get_stats
+  show: true
   available_for:
     - :admin
 
 - id: 10
   name: 'Видеть статистику(свою)'
   action_name: :get_self_stats
+  show: true
   available_for:
     - :admin
     - :validator

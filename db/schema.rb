@@ -10,10 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_05_20_182710) do
+ActiveRecord::Schema.define(version: 2018_05_27_085109) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "organizations", force: :cascade do |t|
+    t.string "name"
+    t.string "phone"
+    t.text "address"
+    t.text "source"
+    t.integer "added_by"
+    t.boolean "is_deleted", default: false
+    t.boolean "is_verified", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "roles_permissions", force: :cascade do |t|
     t.bigint "telegram_role_id"
@@ -42,6 +54,7 @@ ActiveRecord::Schema.define(version: 2018_05_20_182710) do
     t.boolean "is_verificated", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "telegram_id"
   end
 
 end
