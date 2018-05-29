@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_05_29_215736) do
+ActiveRecord::Schema.define(version: 2018_05_29_224523) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -42,6 +42,15 @@ ActiveRecord::Schema.define(version: 2018_05_29_215736) do
     t.index ["telegram_role_id"], name: "index_roles_permissions_on_telegram_role_id"
   end
 
+  create_table "statistics", force: :cascade do |t|
+    t.integer "valid_count", default: 0
+    t.integer "invalid_count", default: 0
+    t.bigint "telegram_user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["telegram_user_id"], name: "index_statistics_on_telegram_user_id"
+  end
+
   create_table "telegram_permissions", force: :cascade do |t|
     t.string "action_name"
     t.string "name"
@@ -63,6 +72,7 @@ ActiveRecord::Schema.define(version: 2018_05_29_215736) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "telegram_id"
+    t.integer "statistic_id"
   end
 
 end

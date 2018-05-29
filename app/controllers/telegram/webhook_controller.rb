@@ -52,7 +52,40 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     }
   end
 
+  def csv_db
+    unless current_user(from).has_role? :admin
+      save_context :user_board
+      respond_with :message, text: "Недостаточно прав"
+    end
+    csv_data = CsvService.full_db
+    reply_with :file, csv_data.force_encoding('UTF-8'),
+                      :type => 'text/csv; charset=UTF-8; header=present',
+                      :disposition => "attachment;"
+  end
+
+  # TODO: уточнить как быть в случае пришло уведомление что ВЕРИФИЦИРУЙ -> а это уже верифицировали -> што делать
+  # И каким образом дополняются поля
+  def verify_org
+    unless current_user(from).has_role? :verificator
+      save_context :user_board
+      respond_with :message, text: "Недостаточно прав"
+    end
+  end
+
+  # TODO: а тут как, просто сумма или каждый пользователь, или вводить номер нужного
+  def stats
+    if current_user(from).has_role? :admin
+    else
+      stat = current_user(from).statistic
+      respond_with :meassage, text: "верифицировано: #{stat.valid_count},\nНеверифицировано: #{stat.valid_count}"
+    end
+  end
+
   def new_org_info
+    unless current_user(from).has_role? :fieldworker
+      save_context :user_board
+      respond_with :message, text: "Недостаточно прав"
+    end
     save_context :new_org_info
     if data.match?('^\+79\d{9}')
       org = Organization.where(phone: data).first || Organization.create(phone: data)
@@ -73,6 +106,10 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   end
 
   def new_user(data, *)
+    unless current_user(from).has_role? :admin
+      save_context :user_board
+      respond_with :message, text: "Недостаточно прав"
+    end
     save_context :new_user
     if data.match?('^\+79\d{9}')
       user = User.where(phone: data).first.presence || User.create(phone: data, telegram_role_id: 4)
@@ -98,7 +135,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     answer_data, answer_params = CallbackService.process(data)
     save_context :new_user if data.to_sym == :add_user
     save_context :new_org_info if data.to_sym == :add_info
-    respond_with :message, text: answer_data
+    save_context :verify_org if data.to_sym == :check_db_info
+    respond_with :message, text: answer_data, reply_markup: answer_params
   end
 
   def message(message)
@@ -109,7 +147,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   private
 
   def current_user(from)
-    User.where(telegram_id: from['id'])
+    @current_user ||= User.where(telegram_id: from['id'])
   end
 
   def remember_org_id(id)
