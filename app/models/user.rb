@@ -7,10 +7,16 @@ class User < ApplicationRecord
   end
 
   def has_role?(code)
-    self.role.code == code
+    self.role.code.to_sym == code
   end
 
   def can?(action_name)
   	self.role.has_permission?(action_name)
+  end
+
+  def check_or_set_telegram_info(tg_id, tg_chat_id)
+    unless telegram_id && chat_id
+      update_attributes(telegram_id: tg_id, chat_id: tg_chat_id)
+    end
   end
 end

@@ -15,6 +15,7 @@
 - id: 3
   name: 'Вносить первичную информацию в базу данных'
   action_name: :add_info
+  show: true
   available_for:
     - :admin
     - :fieldworker
@@ -56,15 +57,8 @@
     - :admin
 
 - id: 9
-  name: 'Видеть статистику(общую)'
+  name: 'Видеть статистику'
   action_name: :get_stats
-  show: true
-  available_for:
-    - :admin
-
-- id: 10
-  name: 'Видеть статистику(свою)'
-  action_name: :get_self_stats
   show: true
   available_for:
     - :admin
