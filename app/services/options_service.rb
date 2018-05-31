@@ -6,7 +6,6 @@ class OptionsService
     end
   end
 
-  # TODO: кэшировать
   def self.permissions
     @permissions ||= YAML.load_file("#{Rails.root}/config/permissions.yml")
   end

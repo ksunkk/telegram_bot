@@ -7,7 +7,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   before_action :set_current_user
 
   ROLE_CALLBACKS = [:admin, :fieldworker, :validator].freeze
-  NON_AUTO_CALLBACKS = [:check_db_info, :valid_org, :invalid_org].freeze
+  NON_AUTO_CALLBACKS = [:check_db_info, :valid_org, :invalid_org, :get_db_backup, :get_stats].freeze
 
   def start(*)
     save_context :login
@@ -58,33 +58,20 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     }
   end
 
-  def csv_db(*)
-    unless current_user(from).has_role? :admin
-      save_context :user_board
-      respond_with :message, text: "Недостаточно прав"
-    end
-    csv_data = CsvService.full_db
-    reply_with :file, csv_data.force_encoding('UTF-8'),
-                      :type => 'tмая сталоext/csv; charset=UTF-8; header=present',
-                      :disposition => "attachment;"
-  end
-
-  # TODO: уточнить как быть в случае пришло уведомление что ВЕРИФИЦИРУЙ -> а это уже верифицировали -> што делать
-  # И каким образом дополняются поля
   def verify_org(*)
     unless current_user(from).has_role? :verificator
       save_context :user_board
       respond_with :message, text: "Недостаточно прав"
     end
-
   end
 
-  def stats(*)
-    if current_user(from).has_role? :admin
-    else
-      stat = current_user(from).statistic
-      respond_with :message, text: "верифицировано: #{stat.valid_count},\nНеверифицировано: #{stat.valid_count}"
-    end
+  def stats(phone, *)
+    stat = User.where(phone: phone).first.statistic.to_s
+    respond_with :message, text: stat, reply_markup: {
+      inline_keyboard: [
+        OptionsService.list_for(@current_user)
+      ]
+    }
   end
 
   def new_org_info(data, *)
@@ -100,7 +87,9 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
         respond_with :message, text: 'Организация с таким номером уже существует'
         return
       end
+      org.added_by = @current_user.id
       org.save
+      org.not_checked!
       remember_org_id(org.id)
       respond_with :message, text: 'Введите название организации'
       return
@@ -179,8 +168,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       elsif data.to_sym == :valid_org
         org = current_org
         org.valid_data!
-        org.added_by.stat.valid_count += 1
-        org.added_by.stat.save
+        org.user.statistic.valid_count += 1
+        org.user.statistic.save
         save_context :user_board
         answer_data = "Данные сохранены"
         answer_params = {
@@ -191,8 +180,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       elsif data.to_sym == :invalid_org
         org = current_org
         org.invalid_data!
-        org.added_by.stat.invalid_count += 1
-        org.added_by.stat.save
+        org.user.statistic.invalid_count += 1
+        org.user.statistic.save
         save_context :user_board
         answer_data = "Данные сохранены"
         answer_params = {
@@ -200,6 +189,29 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
               OptionsService.list_for(@current_user)
             ]
           }
+      elsif data.to_sym == :get_db_backup
+        unless @current_user.has_role? :admin
+          save_context :user_board
+          respond_with :message, text: "Недостаточно прав"
+        end
+        csv_file_name = CsvService.full_db
+        respond_with :document, document: File.open(csv_file_name), chat_id: @current_user.chat_id
+        save_context :user_board
+        answer_data = 'Выберите действие:'
+        answer_params = {
+          inline_keyboard: [
+            OptionsService.list_for(@current_user)
+          ]
+        }
+        return
+      elsif data.to_sym == :get_stats
+        if @current_user.has_role? :admin
+          answer_data = "Введите номер пользователя"
+          answer_params = {}
+        else
+          stat = @current_user.statistic.to_s
+          respond_with :message, text: "верифицировано: #{stat.valid_count},\nНеверифицировано: #{stat.valid_count}"
+        end
       end
     else
       answer_data, answer_params = CallbackAnswerService.process(data)
@@ -207,14 +219,12 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     save_context :new_user if data.to_sym == :add_user
     save_context :new_org_info if data.to_sym == :add_info
     save_context :stats if data.to_sym == :get_stats
-    save_context :verify_org if data.to_sym == :check_db_info
     respond_with :message, text: answer_data, reply_markup: answer_params
   end
 
   def message(message)
     respond_with :message, text: t('.content', text: message['text'])
   end
-
 
   private
 

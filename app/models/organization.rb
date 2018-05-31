@@ -1,5 +1,5 @@
 class Organization < ApplicationRecord
-  enum check_status: { not_checked: 2, valid_data: 1, invalid_data: 0 }
+  enum check_status: [:not_checked, :valid_data, :invalid_data]
 
   scope :needs_check, -> { where(check_status: check_statuses.values_at(:not_checked)) }
 
