@@ -10,6 +10,7 @@ module TelegramBot
     config.load_defaults 5.2
     config.telegram_updates_controller.session_store = :file_store, {expires_in: 1.month}
     config.i18n.default_locale = :ru
+    I18n.config.available_locales = :en, :ru
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration can go into files in config/initializers
     # -- all .rb files in that directory are automatically loaded after loading
