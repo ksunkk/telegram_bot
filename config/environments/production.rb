@@ -72,7 +72,7 @@ Rails.application.configure do
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
   config.i18n.fallbacks = true
-  routes.default_url_options = {host: 'yourdomain.com', protocol: 'https'} # https is necessary!
+  routes.default_url_options = {host: '139.59.157.62', protocol: 'https'} # https is necessary!
   # Send deprecation notices to registered listeners.
   config.active_support.deprecation = :notify
 
