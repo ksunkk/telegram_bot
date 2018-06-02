@@ -10,7 +10,7 @@ preload_app true
 timeout 30
 
 # Set up socket location
-listen "/var/www/telegram_bot/releases/shared/sockets/unicorn.sock", :backlog => 64
+listen "/var/www/telegram-bot/releases/shared/sockets/unicorn.sock", :backlog => 64
 
 # Logging
 stderr_path "#{shared_dir}/log/unicorn.stderr.log"
