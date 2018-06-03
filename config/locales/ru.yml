@@ -1,0 +1,38 @@
+ru:
+  actions:
+    add_user: Добавить пользователя
+    answer: Ответить
+    add_info: Добавить информацию об организации
+    check_db_info: Верификация
+    get_db_backup: CSV выгрузка
+    get_stats: Статистика
+  statistic: "Верифицировано: %{valid_count},\nНеверифицировано: %{invalid_count}"
+  data_saved: Данные сохранены
+  select_action: Выберите действие
+  select_language: Выберите язык
+  roles:
+    admin: Администратор
+    fieldworker: Полевой сотрудник
+    verificator: Проверяющий
+  enter_name: Введите имя
+  valid: Верно
+  invalid: Неверно
+  access_error: Недостаточно прав
+  save_success: Данные успешно сохранены
+  hello: Здравствуй, %{name}!
+  user:
+    enter_phone: 'Введите номер пользователя в формате +7ХХХХХХХХ'
+    select_role: Выберите роль
+    not_found: Пользователь с таким номером не найден, обратитесь к администратору
+    invalid_phone: Некорректно введён номер
+    enter_name: Введите имя пользователя
+    saved: Информация о пользователе успешно сохранена
+  organization:
+    enter_phone: Введите номер организации в формате +7ХХХХХХХХХХ
+    exist: Организация с таким номером уже существует
+    enter_name: Введите название организации
+    enter_source: Введите URL источника
+    saved: Информация успешно сохранена
+    enter_address: Введите адрес
+    new_record: Добавлена информация о организации %{name}
+
