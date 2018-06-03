@@ -1,6 +1,13 @@
 require 'csv'
+# Сервис для работы с выгрузками
 class CsvService
-  # Выгрузка всех записей
+  # Плановый бэкап раз в час
+  def self.send_backup
+    admins_chats = User.where(telegram_role_id: 1).pluck(:chat_id)
+    bot = Telegram.bot
+    admins_chats.each { |chat_id| bot.send_document(chat_id: chat_id, document: full_db) }
+  end
+
   def self.full_db
     file_name = "#{Time.now.to_i.to_s}.csv"
     ::CSV.open(file_name, 'wb') do |csv|
@@ -11,5 +18,17 @@ class CsvService
       csv
     end
     file_name
+  end
+
+  def self.cleanup
+    Dir.foreach(Rails.root) do |f|
+      next unless f.include?('.csv')
+      begin
+        File.open(f, 'r') do |d|
+          d.delete
+        end
+      rescue Errno::ENOENT
+      end
+    end
   end
 end

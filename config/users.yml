@@ -1,10 +1,10 @@
 ---
 - phone: '+79851238159'
   name: 'Ksenia'
-  role_id: 1
+  telegram_role_id: 1
 - phone: '+79268998460'
   name : 'Светлана'
-  role_id: 3
+  telegram_role_id: 3
 - phone: '+79651417440'
   name: ''
-  role_id: 2
+  telegram_role_id: 2
