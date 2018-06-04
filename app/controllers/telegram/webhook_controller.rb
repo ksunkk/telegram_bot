@@ -242,14 +242,16 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     validator_stat = @current_user.statistic.presence || @current_user.create_statistic
     if status.to_sym == :invalid
       org.invalid_data!
-      org.user.statistic.invalid_count += 1
+      fieldworker_stat.invalid_count += 1
+      validator_stat.invalid_count += 1
       response_keyboard = fix_org_keyboard
     else
       org.valid_data!
       org.user.statistic.valid_count += 1
       response_keyboard = user_keyboard
     end
-    org.user.statistic.save
+    fieldworker_stat.save
+    validator_stat.save
     save_context :user_board
     respond_with :message, text: t('data_saved'), reply_markup: response_keyboard
     return
