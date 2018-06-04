@@ -13,6 +13,7 @@ gem 'telegram-bot-types'
 gem 'carrierwave-postgresql'
 gem 'certified', '~> 1.0'
 gem 'http'
+gem 'daemons'
 gem 'unicorn'
 group :development do
   gem 'pry'
