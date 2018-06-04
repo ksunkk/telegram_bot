@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+begin
+  ENV['BOT_POLLER_MODE'] = 'true'
+  require_relative 'config/environment'
+  Telegram::Bot::UpdatesPoller.start(:default)
+  p 'success'
+rescue Exception => e
+  Rollbar.report_exception(e) if defined?(Rollbar) && !e.is_a?(SystemExit)
+  raise
+end

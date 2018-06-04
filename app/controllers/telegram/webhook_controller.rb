@@ -7,7 +7,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   before_action :set_current_user
 
   ROLE_CALLBACKS = [:admin, :fieldworker, :validator].freeze
-  NON_AUTO_CALLBACKS = [:check_db_info, :valid_org, :invalid_org, :get_db_backup, :get_stats, :feedback].freeze
+  NON_AUTO_CALLBACKS = [:check_db_info, :valid_org, :invalid_org, :get_db_backup, :get_stats, :feedback,
+                        :fix_org_number, :fix_org_name, :fix_org_address, :fix_org_source, :end_org_edit].freeze
 
   def start(*)
     save_context :login
@@ -65,32 +66,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       respond_with :message, text: t('access_error')
     end
     save_context :new_org_info
-    if data.match?('^\+7\d{10}')
-      org = Organization.where(phone: data).first || Organization.new(phone: data)
-      unless org.new_record?
-        save_context :user_board
-        respond_with :message, text: t('organization.exist')
-        return
-      end
-      org.added_by = @current_user.id
-      org.save
-      org.not_checked!
-      remember_org_id(org.id)
-      respond_with :message, text: t('organization.enter_name')
-      return
-    elsif data.match?('(^г\..+|^город.+|^Г.+|^Город.+|^г.+)')
-      current_org.update_attributes(address: "#{data} #{args.join(' ')}")
-      respond_with :message, text: t('organization.enter_source')
-    elsif data.match?('^http.+')
-      current_org.update_attributes(source: data)
-      send_new_record_notification
-      save_context :user_board
-      respond_with :message, text: t('organization.saved'), reply_markup: user_keyboard
-    else
-      current_org.update_attributes(name: data)
-      respond_with :message, text: t('organization.enter_address')
-    end
-    
+    update_org_info(data, *args, create: true)
+    return
   end
 
   def new_user(data, *)
@@ -147,6 +124,21 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
         show_stats
       elsif data.to_sym == :feedback
         text_to_admin
+      elsif data.to_sym == :fix_org_number
+        save_context :fix_org
+        answer_data = 'Введите исправленный номер телефона'
+      elsif data.to_sym == :fix_org_name
+        save_context :fix_org
+        answer_data = 'Введите исправленное название'
+      elsif data.to_sym == :fix_org_address
+        save_context :fix_org_
+        answer_data = 'Введите исправленный адрес'
+      elsif data.to_sym == :fix_org_source
+        save_context :fix_org
+        answer_data = 'Введите исправленный источник'
+      elsif data.to_sym == :end_org_edit
+        answer_data = 'Выберите действие'
+        answer_params = user_keyboard
       end
     else
       answer_data, answer_params = CallbackAnswerService.process(data)
@@ -154,6 +146,11 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     save_context :new_user if data.to_sym == :add_user
     save_context :new_org_info if data.to_sym == :add_info
     respond_with :message, text: answer_data, reply_markup: answer_params
+  end
+
+  def fix_org(data, *args)
+    save_context :fix_org
+    update_org_info(data, *args, create: false)
   end
 
   private
@@ -168,10 +165,47 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       save_context :stats
       respond_with :message, text: t('user.enter_phone')
     else
-      stat = @current_user.statistic.to_s
+      stat = @current_user.statistic
       respond_with :message, text: t('statistic', valid_count: stat.valid_count, invalid_count: stat.invalid_count), reply_markup: user_keyboard
     end
     return
+  end
+
+  def update_org_info(data, *args, create: true)
+    if data.match?('^\+7\d{10}')
+      if create
+        org = Organization.where(phone: data).first || Organization.new(phone: data)
+        unless org.new_record?
+          save_context :user_board
+          respond_with :message, text: t('organization.exist')
+          return
+        end
+        org.added_by = @current_user.id
+        org.save
+        org.not_checked!
+        remember_org_id(org.id)
+        respond_with :message, text: t('organization.enter_name')
+      else
+        current_org.update_attributes(phone: data)
+        respond_with :message, text: 'Номер обновлён', reply_markup: fix_org_keyboard
+        return
+      end
+    elsif data.match?('(^г\..+|^город.+|^Г.+|^Город.+|^г.+)')
+      current_org.update_attributes(address: "#{data} #{args.join(' ')}")
+      respond_with :message, text: t('organization.enter_source') if create
+      respond_with :message, text: 'Адрес обновлён', reply_markup: fix_org_keyboard unless create
+    elsif data.match?('^http.+')
+      current_org.update_attributes(source: data)
+      send_new_record_notification
+      save_context :user_board
+      respond_with :message, text: t('organization.saved'), reply_markup: user_keyboard if create
+      respond_with :message, text: 'Источник обновлён', reply_markup: fix_org_keyboard unless create
+
+    else
+      current_org.update_attributes(name: data)
+      respond_with :message, text: 'Источник обновлён', reply_markup: fix_org_keyboard unless create
+      respond_with :message, text: t('organization.enter_address') if create
+    end
   end
 
   def send_db_backup
@@ -186,25 +220,46 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     return
   end
 
+  def fix_org_keyboard
+    { inline_keyboard: [
+        [
+          { text: 'Исправить номер', callback_data: 'fix_org_number' },
+          { text: 'Исправить название', callback_data: 'fix_org_name' },
+        ],
+        [
+          { text: 'Исправить адрес', callback_data: 'fix_org_address' },
+          { text: 'Исправиь источник', callback_data: 'fix_org_source' },
+        ],
+        [
+          { text: 'Завершить редактирование', callback_data: 'end_org_edit' }
+        ]
+    ] }
+  end
+
   def org_set_verification_status!(status)
     org = current_org
+    fieldworker_stat = org.user.statistic.presence || org.user.create_statistic
+    validator_stat = @current_user.statistic.presence || @current_user.create_statistic
     if status.to_sym == :invalid
       org.invalid_data!
       org.user.statistic.invalid_count += 1
+      response_keyboard = fix_org_keyboard
     else
       org.valid_data!
       org.user.statistic.valid_count += 1
+      response_keyboard = user_keyboard
     end
     org.user.statistic.save
     save_context :user_board
-    respond_with :message, text: t('data.saved'), reply_markup: user_keyboard
+    respond_with :message, text: t('data_saved'), reply_markup: response_keyboard
     return
   end
 
   def org_validation
-    unless current_user(from).has_role? :verificator
+    unless @current_user.has_role?(:validator)|| @current_user.has_role?(:admin)
       save_context :user_board
       respond_with :message, text: t('access_error')
+      return
     end
     org = Organization.needs_check.first
     remember_org_id(org.id)
