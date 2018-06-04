@@ -7,7 +7,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   before_action :set_current_user
 
   ROLE_CALLBACKS = [:admin, :fieldworker, :validator].freeze
-  NON_AUTO_CALLBACKS = [:check_db_info, :valid_org, :invalid_org, :get_db_backup, :get_stats].freeze
+  NON_AUTO_CALLBACKS = [:check_db_info, :valid_org, :invalid_org, :get_db_backup, :get_stats, :feedback].freeze
 
   def start(*)
     save_context :login
@@ -29,16 +29,11 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
         save_context :user_board
         user.check_or_set_telegram_info(from['id'], chat['id'])
         reply_txt = t('hello', name: user.name)
-        reply_keyboard = {
-          inline_keyboard: [
-            OptionsService.list_for(user)
-          ]
-        }
+        reply_keyboard = user_keyboard
       else
-        # TODO: экшн для связи с администратором
         save_context :login
         reply_txt = t('user.not_found')
-        reply_keyboard = {}
+        reply_keyboard = feedback_keyboard
       end
     else
       save_context :login
@@ -48,26 +43,23 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     respond_with :message, text: reply_txt, reply_markup: reply_keyboard
   end
 
-
+  def feedback(*args)
+    User.where(telegram_role_id: 1).pluck(:chat_id).each do |chat|
+      respond_with :message, chat_id: chat, text: "От: #{from['id']}: #{args.join(' ')}"
+    end
+    respond_with :message, text: 'Сообщение отправлено', reply_markup: user_keyboard
+  end
 
   def user_board(*)
-    respond_with :message, text: t('select_action'), reply_markup: {
-      inline_keyboard: [
-        OptionsService.list_for(@current_user)
-      ]
-    }
+    respond_with :message, text: t('select_action'), reply_markup: user_keyboard
   end
 
   def stats(phone, *)
-    stat = User.where(phone: phone).first.statistic.to_s
-    respond_with :message, text: stat, reply_markup: {
-      inline_keyboard: [
-        OptionsService.list_for(@current_user)
-      ]
-    }
+    stat = User.where(phone: phone).first.statistic.to_s || "Для данного пользвоателя не найдено статистики, обратитесь к администратору"
+    respond_with :message, text: stat, reply_markup: user_keyboard
   end
 
-  def new_org_info(data, *)
+  def new_org_info(data, *args)
     unless @current_user.has_role?(:fieldworker) || @current_user.has_role?(:admin)
       save_context :user_board
       respond_with :message, text: t('access_error')
@@ -87,12 +79,13 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       respond_with :message, text: t('organization.enter_name')
       return
     elsif data.match?('(^г\..+|^город.+|^Г.+|^Город.+|^г.+)')
-      current_org.update_attributes(address: data)
+      current_org.update_attributes(address: "#{data} #{args.join(' ')}")
       respond_with :message, text: t('organization.enter_source')
     elsif data.match?('^http.+')
       current_org.update_attributes(source: data)
+      send_new_record_notification
       save_context :user_board
-      respond_with :message, text: t('organization.saved')
+      respond_with :message, text: t('organization.saved'), reply_markup: user_keyboard
     else
       current_org.update_attributes(name: data)
       respond_with :message, text: t('organization.enter_address')
@@ -139,86 +132,92 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       role_id = Role.where(code: data).first.id
       User.find(session['new_user_id']).update_attributes(telegram_role_id: role_id)
       answer_data = t('user.saved')
+      answer_params = user_keyboard
       save_context :user_board
     elsif NON_AUTO_CALLBACKS.include?(data.to_sym)
       if data.to_sym == :check_db_info
-        unless current_user(from).has_role? :verificator
-          save_context :user_board
-          respond_with :message, text: t('access_error')
-        end
-        org = Organization.needs_check.first
-        remember_org_id(org.id)
-        answer_data = "#{org.name}\n#{org.phone}\n#{org.address}"
-        answer_params = {
-          inline_keyboard: [
-            [
-              { text: t('valid'), callback_data: 'valid_org' },
-              { text: t('invalid'), callback_data: 'invalid_org' },
-            ]
-          ]
-        }
+        org_validation
       elsif data.to_sym == :valid_org
-        org = current_org
-        org.valid_data!
-        org.user.statistic.valid_count += 1
-        org.user.statistic.save
-        save_context :user_board
-        answer_data = t('data.saved')
-        answer_params = {
-            inline_keyboard: [
-              OptionsService.list_for(@current_user)
-            ]
-          }
+        org_set_verification_status!(:valid)
       elsif data.to_sym == :invalid_org
-        org = current_org
-        org.invalid_data!
-        org.user.statistic.invalid_count += 1
-        org.user.statistic.save
-        save_context :user_board
-        answer_data = t('data.saved')
-        answer_params = {
-            inline_keyboard: [
-              OptionsService.list_for(@current_user)
-            ]
-          }
+        org_set_verification_status!(:invalid)
       elsif data.to_sym == :get_db_backup
-        unless @current_user.has_role? :admin
-          save_context :user_board
-          respond_with :message, text: t('access_error')
-        end
-        csv_file_name = CsvService.full_db
-        respond_with :document, document: File.open(csv_file_name), chat_id: @current_user.chat_id
-        save_context :user_board
-        answer_data = t('select_action')
-        answer_params = {
-          inline_keyboard: [
-            OptionsService.list_for(@current_user)
-          ]
-        }
-        return
+        send_db_backup
       elsif data.to_sym == :get_stats
-        if @current_user.has_role? :admin
-          answer_data = t('user.enter_phone')
-          answer_params = {}
-        else
-          stat = @current_user.statistic.to_s
-          respond_with :message, text: t('statistic', valid_count: stat.valid_count, invalid_count: stat.invalid_count)
-        end
+        show_stats
+      elsif data.to_sym == :feedback
+        text_to_admin
       end
     else
       answer_data, answer_params = CallbackAnswerService.process(data)
     end
     save_context :new_user if data.to_sym == :add_user
     save_context :new_org_info if data.to_sym == :add_info
-    save_context :stats if data.to_sym == :get_stats
     respond_with :message, text: answer_data, reply_markup: answer_params
   end
 
-  def message(message)
-    respond_with :message, text: t('.content', text: message['text'])
+  private
+
+  def text_to_admin
+    save_context :feedback
+    respond_with :message, text: 'Опишите Вашу проблему'
   end
 
-  private
+  def show_stats
+    if @current_user.has_role? :admin
+      save_context :stats
+      respond_with :message, text: t('user.enter_phone')
+    else
+      stat = @current_user.statistic.to_s
+      respond_with :message, text: t('statistic', valid_count: stat.valid_count, invalid_count: stat.invalid_count), reply_markup: user_keyboard
+    end
+    return
+  end
+
+  def send_db_backup
+    unless @current_user.has_role? :admin
+      save_context :user_board
+      respond_with :message, text: t('access_error')
+    end
+    csv_file_name = CsvService.full_db
+    respond_with :document, document: File.open(csv_file_name), chat_id: @current_user.chat_id
+    save_context :user_board
+    respond_with :message, text: t('select_action'), reply_markup: user_keyboard
+    return
+  end
+
+  def org_set_verification_status!(status)
+    org = current_org
+    if status.to_sym == :invalid
+      org.invalid_data!
+      org.user.statistic.invalid_count += 1
+    else
+      org.valid_data!
+      org.user.statistic.valid_count += 1
+    end
+    org.user.statistic.save
+    save_context :user_board
+    respond_with :message, text: t('data.saved'), reply_markup: user_keyboard
+    return
+  end
+
+  def org_validation
+    unless current_user(from).has_role? :verificator
+      save_context :user_board
+      respond_with :message, text: t('access_error')
+    end
+    org = Organization.needs_check.first
+    remember_org_id(org.id)
+    respond_with :message, text: "#{org.name}\n#{org.phone}\n#{org.address}", reply_markup: {
+      inline_keyboard: [
+        [
+          { text: t('valid'), callback_data: 'valid_org' },
+          { text: t('invalid'), callback_data: 'invalid_org' },
+        ]
+      ]
+    }
+    return
+  end
 
   def set_from(tg_data)
     @from = tg_data
@@ -234,6 +233,19 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   def current_org
     Organization.find(session['org_id'])
+  end
+
+  def user_keyboard
+    {
+      inline_keyboard: [
+        OptionsService.list_for(@current_user),
+        [ { text: 'Связаться с администратором', callback_data: 'feedback' } ]
+      ]
+    }
+  end
+
+  def feedback_keyboard
+    { inline_keyboard: [ [ { text: 'Связаться с администратором', callback_data: 'feedback' } ] ] }
   end
 
   def remember_new_user_id(id)

@@ -13,7 +13,7 @@ ru:
   roles:
     admin: Администратор
     fieldworker: Полевой сотрудник
-    verificator: Проверяющий
+    validator: Проверяющий
   enter_name: Введите имя
   valid: Верно
   invalid: Неверно
