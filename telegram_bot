@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 begin
+  ENV['RAILS_ENV'] = 'production'
   ENV['BUNDLE_GEMFILE'] = File.expand_path('Gemfile', __dir__)
   ENV['BOT_POLLER_MODE'] = 'true'
   require_relative 'config/environment'
