@@ -191,7 +191,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   end
 
   def send_reply(*args)
-    respond_with :message, chat_id: reply_id, text: "Ответ администратора на Ваше обращение:\n#{args.join(' ')}"
+    respond_to_chat_with :message, reply_id, text: "Ответ администратора на Ваше обращение:\n#{args.join(' ')}"
   end
 
   def fix_org(data, *args)
@@ -211,8 +211,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       save_context :stats
       respond_with :message, text: t('user.enter_phone')
     else
-      stat = @current_user.statistic
-      respond_with :message, text: t('statistic', valid_count: stat.valid_count, invalid_count: stat.invalid_count), reply_markup: user_keyboard
+      stat = @current_user.statistic.to_s
+      respond_with :message, text: stat, reply_markup: user_keyboard
     end
     return
   end
@@ -278,16 +278,16 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     if status.to_sym == :invalid
       org.invalid_data!
       fieldworker_stat.invalid_count += 1
-      validator_stat.invalid_count += 1
+      validator_stat.corrections_count += 1
       response_keyboard = fix_org_keyboard
       response_message = 'Внесите исправления в запись'
     else
       org.valid_data!
       fieldworker_stat.valid_count += 1
-      validator_stat.invalid_count += 1
       response_keyboard = user_keyboard
       response_message = t('data_saved')
     end
+    validator.stat.validates_count += 1
     fieldworker_stat.save
     validator_stat.save
     respond_with :message, text: response_message, reply_markup: response_keyboard
