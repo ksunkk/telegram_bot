@@ -5,7 +5,7 @@ class CsvService
   def self.send_backup
     admins_chats = User.where(telegram_role_id: 1).pluck(:chat_id)
     bot = Telegram.bot
-    admins_chats.each { |chat_id| bot.send_document(chat_id: chat_id, document: full_db) }
+    admins_chats.compact.each { |chat_id| bot.send_document(chat_id: chat_id, document: File.open(full_db)) }
   end
 
   def self.full_db

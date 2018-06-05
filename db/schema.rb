@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_06_05_123703) do
+ActiveRecord::Schema.define(version: 2018_06_05_193352) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -51,6 +51,7 @@ ActiveRecord::Schema.define(version: 2018_06_05_123703) do
     t.datetime "updated_at", null: false
     t.integer "corrections_count"
     t.integer "validates_count"
+    t.integer "dubles_count", default: 0
     t.index ["telegram_user_id"], name: "index_statistics_on_telegram_user_id"
   end
 
