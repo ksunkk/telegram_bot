@@ -222,7 +222,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   end
 
   def send_new_record_notification
-    User.where(telegram_role_id: 1).pluck(:chat_id).compact.each do |reply_chat|
+    User.where(telegram_role_id: 2).pluck(:chat_id).compact.each do |reply_chat|
       respond_to_chat_with :message, reply_chat, text: t('organization.new_record', name: current_org.name),
                                      reply_markup: { inline_keyboard: [ [ 
                                       { text: 'Проверить', callback_data: "validate_org_#{current_org.id}"} 
