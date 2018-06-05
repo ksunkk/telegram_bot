@@ -217,7 +217,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       respond_with :message, text: 'Источник обновлён', reply_markup: fix_org_keyboard unless create
 
     else
-      current_org.update_attributes(name: data)
+      current_org.update_attributes(name: "data #{args.join(' ')}")
       respond_with :message, text: 'Источник обновлён', reply_markup: fix_org_keyboard unless create
       respond_with :message, text: t('organization.enter_address') if create
     end
@@ -340,8 +340,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   end
 
   def send_new_record_notification
-    User.where(telegram_role_id: 2).pluck(:chat_id).each do |chat|
-      respond_with :message, chat_id: chat, text: t('organization.new_record', name: current_org.name)
+    User.where(telegram_role_id: 2).pluck(:chat_id).each do |reply_chat|
+      respond_with :message, chat_id: reply_chat, text: t('organization.new_record', name: current_org.name)
     end
   end
 
