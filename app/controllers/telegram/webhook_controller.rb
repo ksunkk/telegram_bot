@@ -45,8 +45,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   end
 
   def feedback(*args)
-    User.where(telegram_role_id: 1).pluck(:chat_id).each do |chat|
-      respond_with :message, chat_id: chat, text: "От: #{from['id']}: #{args.join(' ')}", reply_markup: { 
+    User.where(telegram_role_id: 1).pluck(:chat_id).each do |admin_chat|
+      respond_with :message, chat_id: admin_chat, text: "От: #{from['id']}: #{args.join(' ')}", reply_markup: { 
         inline_keyboard: [
           [
             { text: 'Ответить', callback_data: "reply_to_#{from['id']}" },
@@ -281,6 +281,10 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       return
     end
     org = Organization.needs_check.first
+    unless org.presence
+      respond_with :message, text: "Нет доступных для валидации записей", reply_markup: user_keyboard
+      return
+    end
     remember_org_id(org.id)
     respond_with :message, text: "#{org.name}\n#{org.phone}\n#{org.address}", reply_markup: {
       inline_keyboard: [
