@@ -222,8 +222,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       respond_with :message, text: 'Источник обновлён', reply_markup: fix_org_keyboard unless create
 
     else
-      current_org.update_attributes(name: "data #{args.join(' ')}")
-      respond_with :message, text: 'Источник обновлён', reply_markup: fix_org_keyboard unless create
+      current_org.update_attributes(name: "#{data} #{args.join(' ')}")
+      respond_with :message, text: 'Название обновлено', reply_markup: fix_org_keyboard unless create
       respond_with :message, text: t('organization.enter_address') if create
     end
   end
