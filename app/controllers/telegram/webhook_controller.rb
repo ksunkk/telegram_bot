@@ -46,7 +46,13 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   def feedback(*args)
     User.where(telegram_role_id: 1).pluck(:chat_id).each do |chat|
-      respond_with :message, chat_id: chat, text: "От: #{from['id']}: #{args.join(' ')}"
+      respond_with :message, chat_id: chat, text: "От: #{from['id']}: #{args.join(' ')}", reply_markup: { 
+        inline_keyboard: [
+          [
+            { text: 'Ответить', callback_data: "reply_to_#{from['id']}" },
+          ]
+        ]
+      }
     end
     respond_with :message, text: 'Сообщение отправлено', reply_markup: user_keyboard
   end
@@ -140,12 +146,21 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
         answer_data = 'Выберите действие'
         answer_params = user_keyboard
       end
+    elsif data.match?('reply_to_\d+')
+      remember_reply_id(data.scan(/\d+/))
+      save_context :send_reply
+      answer_data = 'Введите текст ответа'
+      answer_params = {}
     else
       answer_data, answer_params = CallbackAnswerService.process(data)
     end
     save_context :new_user if data.to_sym == :add_user
     save_context :new_org_info if data.to_sym == :add_info
     respond_with :message, text: answer_data, reply_markup: answer_params
+  end
+
+  def send_reply(*args)
+    respond_with :message, chat_id: reply_id, text: "Ответ администратора на Ваше обращение:\n#{args.join(' ')}"
   end
 
   def fix_org(data, *args)
@@ -245,15 +260,17 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       fieldworker_stat.invalid_count += 1
       validator_stat.invalid_count += 1
       response_keyboard = fix_org_keyboard
+      response_message = 'Внесите исправления в запись'
     else
       org.valid_data!
-      org.user.statistic.valid_count += 1
+      fieldworker_stat.valid_count += 1
+      validator_stat.invalid_count += 1
       response_keyboard = user_keyboard
+      response_message = t('data_saved')
     end
     fieldworker_stat.save
     validator_stat.save
-    save_context :user_board
-    respond_with :message, text: t('data_saved'), reply_markup: response_keyboard
+    respond_with :message, text: response_message, reply_markup: response_keyboard
     return
   end
 
@@ -303,6 +320,15 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   def feedback_keyboard
     { inline_keyboard: [ [ { text: 'Связаться с администратором', callback_data: 'feedback' } ] ] }
+  end
+
+  def remember_reply_id(raw_id)
+    id = raw_id.first.to_i
+    session['reply_id'] = id
+  end
+
+  def reply_id
+    session['reply_id']
   end
 
   def remember_new_user_id(id)
