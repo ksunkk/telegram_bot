@@ -46,7 +46,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   def feedback(*args)
     User.where(telegram_role_id: 1).pluck(:chat_id).each do |admin_chat|
-      send_message, chat_id: admin_chat, text: "От: #{from['id']}: #{args.join(' ')}", reply_markup: { 
+      respond_to_chat_with :message, admin_chat, text: "От: #{from['id']}: #{args.join(' ')}", reply_markup: { 
         inline_keyboard: [
           [
             { text: 'Ответить', callback_data: "reply_to_#{from['id']}" },
@@ -55,6 +55,11 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       }
     end
     respond_with :message, text: 'Сообщение отправлено', reply_markup: user_keyboard
+  end
+
+  def respond_to_chat_with(type, dest_chat, params)
+    chat_id = dest_chat
+    bot.public_send("send_#{type}", params.merge(chat_id: chat_id))
   end
 
   def user_board(*)
@@ -341,7 +346,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   def send_new_record_notification
     User.where(telegram_role_id: 2).pluck(:chat_id).each do |reply_chat|
-      send_message chat_id: reply_chat, text: t('organization.new_record', name: current_org.name)
+      respond_to_chat_with :message, reply_chat, text: t('organization.new_record', name: current_org.name)
     end
   end
 
