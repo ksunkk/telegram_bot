@@ -8,7 +8,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   ROLE_CALLBACKS = [:admin, :fieldworker, :validator].freeze
   NON_AUTO_CALLBACKS = [:check_db_info, :valid_org, :invalid_org, :get_db_backup, :get_stats, :feedback,
-                        :fix_org_number, :fix_org_name, :fix_org_address, :fix_org_source, :end_org_edit].freeze
+                        :fix_org_number, :fix_org_name, :fix_org_address, :fix_org_source, :end_org_edit, :upload_csv].freeze
 
   def start(*)
     save_context :login
@@ -115,6 +115,23 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     end
   end
 
+  def db_backup(data, *args)
+    unless @current_user.has_role? :admin
+      save_context :user_board
+      respond_with :message, text: t('access_error')
+    end
+    if data.present
+      start_dt, end_dt = data.split('-').map { |s| Date.parse(s) }
+      csv_file_name = CsvService.for_period(start_dt, end_dt)
+    else
+      csv_file_name = CsvService.full_db
+    end
+    respond_with :document, document: File.open(csv_file_name), chat_id: @current_user.chat_id
+    save_context :user_board
+    respond_with :message, text: t('select_action'), reply_markup: user_keyboard
+    return
+  end
+
   def callback_query(data)
     if ROLE_CALLBACKS.include?(data.to_sym)
       role_id = Role.where(code: data).first.id
@@ -130,7 +147,8 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       elsif data.to_sym == :invalid_org
         org_set_verification_status!(:invalid)
       elsif data.to_sym == :get_db_backup
-        send_db_backup
+        save_context :db_backup
+        answer_data = 'Введите дату начала и конца в формате дд.мм.гггг-дд.мм.гггг или оставьте пустым для выгрузки всех записей'
       elsif data.to_sym == :get_stats
         show_stats
       elsif data.to_sym == :feedback
@@ -150,6 +168,10 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       elsif data.to_sym == :end_org_edit
         answer_data = 'Выберите действие'
         answer_params = user_keyboard
+      elsif data.to_sym == :upload_csv
+        save_context :upload_csv
+        answer_data = "Загрузите исправленный файл"
+        answer_params = {}
       end
     elsif data.match?('reply_to_\d+')
       remember_reply_id(data.scan(/\d+/))
@@ -162,6 +184,10 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     save_context :new_user if data.to_sym == :add_user
     save_context :new_org_info if data.to_sym == :add_info
     respond_with :message, text: answer_data, reply_markup: answer_params
+  end
+
+  def upload_csv(data, *args)
+    
   end
 
   def send_reply(*args)
@@ -228,17 +254,6 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     end
   end
 
-  def send_db_backup
-    unless @current_user.has_role? :admin
-      save_context :user_board
-      respond_with :message, text: t('access_error')
-    end
-    csv_file_name = CsvService.full_db
-    respond_with :document, document: File.open(csv_file_name), chat_id: @current_user.chat_id
-    save_context :user_board
-    respond_with :message, text: t('select_action'), reply_markup: user_keyboard
-    return
-  end
 
   def fix_org_keyboard
     { inline_keyboard: [

@@ -20,6 +20,19 @@ class CsvService
     file_name
   end
 
+  def self.for_period(start_date, end_date)
+    file_name = "#{Time.now.to_i.to_s}_#{start_date}#{end_date}.csv"
+    orgs = Organization.where("created_at >= '#{start_date}'::date and created_at <= '#{end_date}'::date")
+    ::CSV.open(file_name, 'wb') do |csv|
+      csv << Organization.attribute_names
+      orgs.each do |record|
+        csv << record.attributes.values
+      end
+      csv
+    end
+    file_name
+  end
+
   def self.cleanup
     Dir.foreach(Rails.root) do |f|
       next unless f.include?('.csv')
