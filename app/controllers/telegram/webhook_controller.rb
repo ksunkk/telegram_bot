@@ -287,7 +287,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       response_keyboard = user_keyboard
       response_message = t('data_saved')
     end
-    validator.stat.validates_count += 1
+    validator_stat.stat.validates_count += 1
     fieldworker_stat.save
     validator_stat.save
     respond_with :message, text: response_message, reply_markup: response_keyboard
