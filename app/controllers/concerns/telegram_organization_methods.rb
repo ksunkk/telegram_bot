@@ -84,7 +84,7 @@ module TelegramOrganizationMethods
 	    end
     end
     remember_org_id(org.id)
-    respond_with :message, text: "#{org.name}\n#{org.phone}\n#{org.address}\n{org.source}", reply_markup: {
+    respond_with :message, text: "#{org.name}\n#{org.phone}\n#{org.address}\n#{org.source}", reply_markup: {
       inline_keyboard: [
         [
           { text: t('valid'), callback_data: 'valid_org' },

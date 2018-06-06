@@ -91,7 +91,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       user = User.where(phone: data).first.presence || User.new(phone: data, telegram_role_id: 4)
       unless user.new_record?
         save_context :user_board
-        respond_with :message, text: t('user.exist')
+        respond_with :message, text: t('user_exist'), reply_markup: user_keyboard
         return
       end
       user.save

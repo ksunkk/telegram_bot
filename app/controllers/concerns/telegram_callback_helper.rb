@@ -20,7 +20,7 @@ module TelegramCallbackHelper
         org_set_verification_status!(:invalid)
       elsif data.to_sym == :get_db_backup
         save_context :db_backup
-        answer_data = 'Введите дату начала и конца в формате дд.мм.гггг-дд.мм.гггг, для выгрузки всез записей введите любой символ'
+        answer_data = 'Введите дату начала и конца в формате дд.мм.гггг-дд.мм.гггг, для выгрузки всех записей введите любой символ'
       elsif data.to_sym == :get_stats
         show_stats
       elsif data.to_sym == :feedback
