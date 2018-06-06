@@ -66,7 +66,12 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   end
 
   def stats(phone, *)
-    stat = User.where(phone: phone).first.statistic.to_s || "Для данного пользвоателя не найдено статистики, обратитесь к администратору"
+    user = User.where(phone: phone).first
+    if user.blank?
+      respond_with :message, text: 'Пользователь с таким номером не найден', reply_markup: user_keyboard
+      return
+    end
+    stat = user.statistic.to_s || "Для данного пользвоателя не найдено статистики, обратитесь к администратору"
     respond_with :message, text: stat, reply_markup: user_keyboard
   end
 
@@ -91,7 +96,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       user = User.where(phone: data).first.presence || User.new(phone: data, telegram_role_id: 4)
       unless user.new_record?
         save_context :user_board
-        respond_with :message, text: t('user_exist'), reply_markup: user_keyboard
+        respond_with :message, text: t('user_exist', name: user.name), reply_markup: user_keyboard
         return
       end
       user.save
@@ -197,10 +202,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   def user_keyboard
     {
-      inline_keyboard: [
-        OptionsService.list_for(@current_user),
-        [ { text: 'Связаться с администратором', callback_data: 'feedback' } ]
-      ]
+      inline_keyboard: OptionsService.list_for(@current_user)
     }
   end
 

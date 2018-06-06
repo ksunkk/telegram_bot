@@ -8,6 +8,7 @@ ru:
     get_stats: Статистика
   statistic: "Верифицировано: %{valid_count},\nНеверифицировано: %{invalid_count}"
   data_saved: Данные сохранены
+  user_exist: "Пользователь с таким номером уже есть в системе под именем %{name}"
   select_action: Выберите действие
   select_language: Выберите язык
   roles:
