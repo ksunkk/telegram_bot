@@ -9,7 +9,7 @@ module TelegramOrganizationMethods
         return
       end
       current_org.update_attributes(phone: data)
-      respond_with :message, text: t('organization.enter_source') if create
+      respond_with :message, text: t('organization.enter_address') if create
       respond_with :message, text: 'Номер обновлён', reply_markup: fix_org_keyboard unless create
     elsif data.match?('(^г\..+|^город.+|^Г.+|^Город.+|^г.+|^Г\..+)')
       current_org.update_attributes(address: "#{data} #{args.join(' ')}")
@@ -79,7 +79,7 @@ module TelegramOrganizationMethods
     else
       org = Organization.needs_check.first
       unless org.presence
-        respond_with :message, text: "Нет доступных для валидации записей", reply_markup: user_keyboard
+        respond_with :message, text: "Новых записей нет", reply_markup: user_keyboard
         return
       end
     end
