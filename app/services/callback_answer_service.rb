@@ -16,11 +16,11 @@ class CallbackAnswerService
     private
 
     def stats
-      ['Введите номер телефона:', nil]
+      ['Введите номер телефона сотрудника в формате +7XXXXXXXXXX:', nil]
     end
 
     def check_db_info
-      ['Введите номер телефона:', nil]
+      ['Введите номер телефона сотрудника в формате +7XXXXXXXXXX:', nil]
     end
 
     def add_info
@@ -30,7 +30,7 @@ class CallbackAnswerService
     def verify_info
       org = Organization.where(is_verified: false).first
       if org
-        return ["#{org.phone}\norg.name\norg.address\norg.source", {
+        return ["#{org.phone}\n#{org.name}\n#{org.address}\n#{org.source}", {
           inline_keyboard: [
             { text: 'Верно', callback_data: "valid-#{org.id}" }
           ]
@@ -41,7 +41,7 @@ class CallbackAnswerService
     end
 
     def add_user
-      ['Введите номер телефона:', nil]
+      ['Введите номер телефона сотрудника в формате +7XXXXXXXXXX:', nil]
     end
 
     def set_lang_ru
