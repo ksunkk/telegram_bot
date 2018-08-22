@@ -1,25 +1,16 @@
 module TelegramOrganizationMethods
   def update_org_info(data, *args, create: true)
     if data.match?('^\+7\d{10}')
-      if create
-        org = Organization.where(phone: data).first || Organization.new(phone: data)
-        unless org.new_record?
-          save_context :new_org_info
-          respond_with :message, text: t('organization.exist', org_name: org.name)
-          return
-          @current_user.statistic.dubles_count += 1
-          @current_user.statistic.save
-        end
-        org.added_by = @current_user.id
-        org.save
-        org.not_checked!
-        remember_org_id(org.id)
-        respond_with :message, text: t('organization.enter_name')
-      else
-        current_org.update_attributes(phone: data)
-        respond_with :message, text: 'Номер обновлён', reply_markup: fix_org_keyboard
+      if create && Organization.where(phone: data, name: current_org.name).present?
+        save_context :new_org_info
+        respond_with :message, text: t('organization.exist')
+        @current_user.statistic.dubles_count += 1
+        @current_user.statistic.save
         return
       end
+      current_org.update_attributes(phone: data)
+      respond_with :message, text: t('organization.enter_source') if create
+      respond_with :message, text: 'Номер обновлён', reply_markup: fix_org_keyboard unless create
     elsif data.match?('(^г\..+|^город.+|^Г.+|^Город.+|^г.+|^Г\..+)')
       current_org.update_attributes(address: "#{data} #{args.join(' ')}")
       respond_with :message, text: t('organization.enter_source') if create
@@ -31,11 +22,20 @@ module TelegramOrganizationMethods
       respond_with :message, text: t('organization.saved'), reply_markup: user_keyboard if create
       respond_with :message, text: 'Источник обновлён', reply_markup: fix_org_keyboard unless create
     elsif data.match?('^\D+')
-      current_org.update_attributes(name: "#{data} #{args.join(' ')}")
-      respond_with :message, text: 'Название обновлено', reply_markup: fix_org_keyboard unless create
-      respond_with :message, text: t('organization.enter_address') if create
+      if create
+        org = Organization.where(name: data).where.not(phone: nil).first || Organization.new(name: data)
+        org.update_attributes(name: "#{data} #{args.join(' ')}")
+        org.added_by = @current_user.id
+        org.save
+        org.not_checked!
+        remember_org_id(org.id)
+        respond_with :message, text: t('organization.enter_phone')
+      else
+        current_org.update_attributes(name: "#{data} #{args.join(' ')}")
+        respond_with :message, text: 'Название обновлено', reply_markup: fix_org_keyboard
+      end
     else
-      respond_with :message, text: 'Введён некорректный номер, введите номер в формате +79ХХХХХХХХХХ'
+      respond_with :message, text: 'Введёны некорректные данные.'
       save_context :new_org_info if create
       save_context :fix_org unless create
     end
@@ -70,18 +70,18 @@ module TelegramOrganizationMethods
       respond_with :message, text: t('access_error')
       return
     end
-	  if org_id
+    if org_id
       org = Organization.find(org_id).first
       unless org.not_checked?
         respond_with :message, text: "Запись уже верифицирована", reply_markup: user_keyboard
-        return        
+        return
       end
     else
       org = Organization.needs_check.first
-	    unless org.presence
-	      respond_with :message, text: "Нет доступных для валидации записей", reply_markup: user_keyboard
-	      return
-	    end
+      unless org.presence
+        respond_with :message, text: "Нет доступных для валидации записей", reply_markup: user_keyboard
+        return
+      end
     end
     remember_org_id(org.id)
     respond_with :message, text: "#{org.name}\n#{org.phone}\n#{org.address}\n#{org.source}", reply_markup: {

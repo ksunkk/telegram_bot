@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Telegram::WebhookController < Telegram::Bot::UpdatesController
   include Telegram::Bot::UpdatesController::MessageContext
   include ::TelegramCallbackHelper
@@ -15,9 +17,9 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       inline_keyboard: [
         [
           { text: 'Русский', callback_data: 'set_lang_ru' },
-          { text: 'English', callback_data: 'set_lang_en' },
-        ],
-      ],
+          { text: 'English', callback_data: 'set_lang_en' }
+        ]
+      ]
     }
   end
 
@@ -45,10 +47,10 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   def feedback(*args)
     User.where(telegram_role_id: 1).pluck(:chat_id).each do |admin_chat|
-      respond_to_chat_with :message, admin_chat, text: "От: #{from['id']}: #{args.join(' ')}", reply_markup: { 
+      respond_to_chat_with :message, admin_chat, text: "От: #{TelegramUser.where(chat_id: from['id']).name}: #{args.join(' ')}", reply_markup: {
         inline_keyboard: [
           [
-            { text: 'Ответить', callback_data: "reply_to_#{from['id']}" },
+            { text: 'Ответить', callback_data: "reply_to_#{from['id']}" }
           ]
         ]
       }
@@ -71,7 +73,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       respond_with :message, text: 'Пользователь с таким номером не найден', reply_markup: user_keyboard
       return
     end
-    stat = user.statistic.to_s || "Для данного пользвоателя не найдено статистики, обратитесь к администратору"
+    stat = user.statistic.to_s || 'Для данного пользвоателя не найдено статистики, обратитесь к администратору'
     respond_with :message, text: stat, reply_markup: user_keyboard
   end
 
@@ -82,7 +84,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     end
     save_context :new_org_info
     update_org_info(data, *args, create: true)
-    return
+    nil
   end
 
   def new_user(data, *)
@@ -109,17 +111,17 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
         inline_keyboard: [
           [
             { text: t('roles.admin'), callback_data: 'admin' },
-            { text: t('roles.validator'), callback_data: 'validator' },
+            { text: t('roles.validator'), callback_data: 'validator' }
           ],
           [
-            { text: t('roles.fieldworker'), callback_data: 'fieldworker' },
-          ],
-        ],
+            { text: t('roles.fieldworker'), callback_data: 'fieldworker' }
+          ]
+        ]
       }
     end
   end
 
-  def db_backup(data, *args)
+  def db_backup(data, *_args)
     unless @current_user.has_role? :admin
       save_context :user_board
       respond_with :message, text: t('access_error')
@@ -133,7 +135,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
     respond_with :document, document: File.open(csv_file_name), chat_id: @current_user.chat_id
     save_context :user_board
     respond_with :message, text: t('select_action'), reply_markup: user_keyboard
-    return
+    nil
   end
 
   def callback_query(data)
@@ -164,23 +166,22 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
       stat = @current_user.statistic.to_s
       respond_with :message, text: stat, reply_markup: user_keyboard
     end
-    return
+    nil
   end
-
 
   def fix_org_keyboard
     { inline_keyboard: [
-        [
-          { text: 'Исправить номер', callback_data: 'fix_org_number' },
-          { text: 'Исправить название', callback_data: 'fix_org_name' },
-        ],
-        [
-          { text: 'Исправить адрес', callback_data: 'fix_org_address' },
-          { text: 'Исправиь источник', callback_data: 'fix_org_source' },
-        ],
-        [
-          { text: 'Завершить редактирование', callback_data: 'end_org_edit' }
-        ]
+      [
+        { text: 'Исправить номер', callback_data: 'fix_org_number' },
+        { text: 'Исправить название', callback_data: 'fix_org_name' }
+      ],
+      [
+        { text: 'Исправить адрес', callback_data: 'fix_org_address' },
+        { text: 'Исправиь источник', callback_data: 'fix_org_source' }
+      ],
+      [
+        { text: 'Завершить редактирование', callback_data: 'end_org_edit' }
+      ]
     ] }
   end
 
@@ -207,7 +208,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   end
 
   def feedback_keyboard
-    { inline_keyboard: [ [ { text: 'Связаться с администратором', callback_data: 'feedback' } ] ] }
+    { inline_keyboard: [[{ text: 'Связаться с администратором', callback_data: 'feedback' }]] }
   end
 
   def remember_reply_id(raw_id)
@@ -226,9 +227,9 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
   def send_new_record_notification
     User.where(telegram_role_id: 2).pluck(:chat_id).compact.each do |reply_chat|
       respond_to_chat_with :message, reply_chat, text: t('organization.new_record', name: current_org.name),
-                                     reply_markup: { inline_keyboard: [ [ 
-                                      { text: 'Проверить', callback_data: "validate_org_#{current_org.id}"} 
-                                     ] ] }
+                                                 reply_markup: { inline_keyboard: [[
+                                                   { text: 'Проверить', callback_data: "validate_org_#{current_org.id}" }
+                                                 ]] }
     end
   end
 
