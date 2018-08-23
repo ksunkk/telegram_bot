@@ -47,7 +47,7 @@ class Telegram::WebhookController < Telegram::Bot::UpdatesController
 
   def feedback(*args)
     User.where(telegram_role_id: 1).pluck(:chat_id).each do |admin_chat|
-      respond_to_chat_with :message, admin_chat, text: "От: #{TelegramUser.where(chat_id: from['id']).name}: #{args.join(' ')}", reply_markup: {
+      respond_to_chat_with :message, admin_chat, text: "От: #{User.where(chat_id: from['id']).name}: #{args.join(' ')}", reply_markup: {
         inline_keyboard: [
           [
             { text: 'Ответить', callback_data: "reply_to_#{from['id']}" }
